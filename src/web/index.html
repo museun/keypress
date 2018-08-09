@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>not a keylogger</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=PT+Sans');
+        body {
+            background: rgba(20, 21, 25, 100);
+            margin: 0;
+            padding: 0;
+        }
+
+        #keys {
+            height: 99vh;
+            display: flex;
+            /* margin-left: 15px;
+            margin-left: 5vw; */
+            flex-direction: column;
+            justify-content: flex-end;
+            color: white;
+            font-family: 'PT Sans', sans-serif;
+            font-size: 28px;
+            overflow: hidden;
+            margin-right: 1ch;
+            margin-left: 1ch;
+            justify-items: right;
+        }
+
+        .keypress {
+            margin-top: 0.5ch;
+            text-align: right;
+        }
+    </style>
+
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/reconnecting-websocket@4.0.0-rc5/dist/reconnecting-websocket-iife.min.js"></script>
+</head>
+
+<body>
+    <div id="keys">
+        <div class="keypress" v-for="key in keypresses">
+            {{ key }}
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const MAX = 16;
+        var keypresses = [];
+
+        var app = new Vue({
+            el: '#keys',
+            data: function () { return { keypresses: keypresses } },
+        });
+
+        const mapping = new Map();
+        mapping.set("`", "~");
+        mapping.set("1", "!");
+        mapping.set("2", "@");
+        mapping.set("3", "#");
+        mapping.set("4", "$");
+        mapping.set("5", "%");
+        mapping.set("6", "^");
+        mapping.set("7", "&");
+        mapping.set("8", "*");
+        mapping.set("9", "(");
+        mapping.set("0", ")");
+        mapping.set("-", "_");
+        mapping.set("=", "+");
+        mapping.set("[", "{");
+        mapping.set("]", "}");
+        mapping.set("\\", "|");
+        mapping.set(";", ":");
+        mapping.set("'", "\"");
+        mapping.set(",", "<");
+        mapping.set(".", ">");
+        mapping.set("/", "?");
+
+        const modifiers = [
+            "control", "alt", "shift"
+        ];
+
+        const combine_keys = (data) => {
+            let ctrl = data.l_control || data.r_control;
+            let shift = data.l_shift || data.r_shift;
+            let alt = data.l_alt || data.r_alt;
+            let lower = data.key.toLowerCase();
+
+            //if (lower.includes("spacebar") && (!ctrl || !alt || !shift)) { return null; }
+            if (modifiers.includes(lower.split(' ').slice(-1).pop())) { return null; }
+
+            var s = `${(ctrl) ? "Ctrl + " : ""} ${(alt) ? "Alt + " : ""}`;
+            if (shift) {
+                if (mapping.has(lower)) {
+                    s += mapping.get(lower);
+                } else {
+                    s += `Shift + ${data.key}`;
+                }
+            } else {
+                s += data.key;
+            }
+
+            return s;
+        };
+
+        const socket = new ReconnectingWebSocket("ws://localhost:51005");
+        socket.addEventListener('open', function (event) {
+            socket.send(JSON.stringify("42")); // this should be a real handshake
+        });
+        socket.addEventListener('message', function (event) {
+            let data = JSON.parse(event.data);
+            let display = combine_keys(data);
+            if (display == null || display.length == 0) { return; }
+            if (keypresses.length >= MAX) { keypresses.shift(); }
+            keypresses.push(display);
+        });
+
+    </script>
+</body>
+
+</html>
