@@ -47,9 +47,8 @@
 
     <script type="text/javascript">
         const MAX = 16;
-        var keypresses = [];
-
-        var app = new Vue({
+        const keypresses = [];
+        const app = new Vue({
             el: '#keys',
             data: function () { return { keypresses: keypresses } },
         });
@@ -77,28 +76,29 @@
         mapping.set(".", ">");
         mapping.set("/", "?");
 
-        const modifiers = [
-            "control", "alt", "shift"
-        ];
-
         const combine_keys = (data) => {
-            let ctrl = data.l_control || data.r_control;
-            let shift = data.l_shift || data.r_shift;
-            let alt = data.l_alt || data.r_alt;
-            let lower = data.key.toLowerCase();
+            const ctrl = data.l_control || data.r_control;
+            const shift = data.l_shift || data.r_shift;
+            const alt = data.l_alt || data.r_alt;
+            const lower = data.key.toLowerCase();
 
-            //if (lower.includes("spacebar") && (!ctrl || !alt || !shift)) { return null; }
+            const modifiers = ["control", "alt", "shift"];
             if (modifiers.includes(lower.split(' ').slice(-1).pop())) { return null; }
 
-            var s = `${(ctrl) ? "Ctrl + " : ""} ${(alt) ? "Alt + " : ""}`;
-            if (shift) {
-                if (mapping.has(lower)) {
-                    s += mapping.get(lower);
+            let s = `${(ctrl) ? "Ctrl + " : ""} ${(alt) ? "Alt + " : ""}`;
+
+            if (data.key.length == 1) {
+                if (shift) {
+                    if (mapping.has(data.key)) {
+                        s += mapping.get(data.key);
+                    } else {
+                        s += `Shift + ${lower}`;
+                    }
                 } else {
-                    s += `Shift + ${data.key}`;
+                    s += lower;
                 }
             } else {
-                s += data.key;
+                s += `${(shift) ? "Shift + " : ""}${data.key}`;
             }
 
             return s;
@@ -110,7 +110,7 @@
         });
         socket.addEventListener('message', function (event) {
             let data = JSON.parse(event.data);
-            let display = combine_keys(data);
+            const display = combine_keys(data);
             if (display == null || display.length == 0) { return; }
             if (keypresses.length >= MAX) { keypresses.shift(); }
             keypresses.push(display);
